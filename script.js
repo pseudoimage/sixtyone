@@ -60,17 +60,15 @@ function Player(initials, targetScore){
   return {
     initials: initials.toUpperCase(),
     score: 0,
-    pocketed: new Set(),
+    pocketed: [],
     targetScore: targetScore
   };
 }
 
 /* ---------- Utilities (mirror Flutter) ---------- */
-function calculateScore(pocketedSet){
-  if (pocketedSet.size === 0) return 0;
-  let sum = 0;
-  pocketedSet.forEach(v => sum += v);
-  return sum;
+function calculateScore(pocketedArr){
+  if (!pocketedArr || pocketedArr.length === 0) return 0;
+  return pocketedArr.reduce((sum,v)=>sum+v,0);
 }
 
 function calculateSequentialNeededBalls(currentScore, targetScore, availableBallsSorted){
@@ -395,7 +393,7 @@ function handleBallTap(ballNumber){
   lastPlayerToPocket = currentPlayer;
 
   // Add ball to pocketed
-  player.pocketed.add(ballNumber);
+  player.pocketed.push(ballNumber);
   player.score = calculateScore(player.pocketed);
 
   // Remove from available balls
@@ -444,7 +442,7 @@ function undoLast(){
   const scoreBeforeUndo = player.score;
 
   // Reverse action
-  player.pocketed.delete(toRestore);
+  player.pocketed.pop(toRestore);
   player.score = calculateScore(player.pocketed);
   // Put ball back into availableBalls and sort
   availableBalls.push(toRestore);
@@ -493,10 +491,15 @@ function showGameOverDialog(){
   dlgRoot.innerHTML = '';
   dlgRoot.style.display = 'grid';
   dlgRoot.className = 'dialog';
+
   const box = document.createElement('div');
   box.className = 'box';
+
   const title = document.createElement('div');
-  title.style.fontWeight = '800'; title.style.marginBottom = '8px'; title.textContent = 'Game Over!';
+  title.style.fontWeight = '800';
+  title.style.marginBottom = '8px';
+  title.textContent = 'Game Over!';
+
   const content = document.createElement('div');
   content.style.whiteSpace = 'pre-wrap';
   let contText = gameStatusMessage + '\n';
@@ -510,17 +513,46 @@ function showGameOverDialog(){
 
   const actions = document.createElement('div');
   actions.className = 'controls-row';
+
   const closeBtn = document.createElement('button');
   closeBtn.textContent = 'Close';
-  closeBtn.onclick = ()=> { closeGameOverDialog(); };
+  closeBtn.onclick = () => { closeGameOverDialog(); };
+
   const newBtn = document.createElement('button');
   newBtn.textContent = 'New Game';
-  newBtn.onclick = ()=> { closeGameOverDialog(); resetGame(); };
-  actions.append(closeBtn, newBtn);
+  newBtn.onclick = () => { closeGameOverDialog(); resetGame(); };
 
+  const rematchBtn = document.createElement('button');
+  rematchBtn.textContent = 'Rematch';
+  rematchBtn.onclick = () => {
+    closeGameOverDialog();
+    rematchGame();
+  };
+
+  actions.append(closeBtn, newBtn, rematchBtn);
   box.append(title, content, actions);
   dlgRoot.append(box);
 }
+
+// Rematch function: keeps players and targets
+function rematchGame(){
+  if (!playerA || !playerB) return;
+  // Reset player states
+  playerA.score = 0;
+  playerA.pocketed = [];
+  playerB.score = 0;
+  playerB.pocketed = [];
+
+  availableBalls = [...allBalls];
+  currentPlayer = playerA.initials;
+  gamePhase = 'playing';
+  winnerInitial = null;
+  lastPocketedBall = null;
+  lastPlayerToPocket = null;
+  gameStatusMessage = `${playerA.initials}'s turn.`;
+  refreshUI();
+}
+
 
 /* Close dialog */
 function closeGameOverDialog(){
@@ -561,24 +593,13 @@ function refreshUI(){
     availableCountEl.textContent = availableBalls.length;
   }
 }
-
+function numberToTagalog(n) {
+  const words = ["isa","dalawa","tatlo","apat","lima","anim","pito","walo","siyam","sampu","labing-isa","labing-dalawa","labing-tatlo","labing-apat","labing-lima"];
+  return words[n-1] || n;
+}
 /* Render needed balls small previews (use small canvases to match visuals) */
-function renderNeeded(needed, player){
-  if (player.score >= player.targetScore) return `<div style="color: #d6b0ff;">Balls Needed: Target Reached!</div>`;
-  if (!needed.balls || needed.balls.length === 0) return `<div style="color:#ffb0b0;">Balls Needed: Cannot reach target with remaining balls.</div>`;
-  const projected = needed.projectedScore;
-  // create small inline canvases
-  const pieces = needed.balls.map(b => {
-    const c = document.createElement('canvas');
-    // render small
-    const sizeSmall = 28;
-    drawBallOnCanvas(c, b, sizeSmall);
-    // return outerHTML (canvas doesn't have innerHTML) - convert to dataURL
-    return `<img src="${c.toDataURL()}" style="width:${sizeSmall}px;height:${sizeSmall}px;margin-right:6px;border-radius:50%;">`;
-  }).join('');
-  return `<div>${projected} ka sa ${needed.balls.length}</div><div style="margin-top:6px;">${pieces}</div>`;
 
-  function renderNeeded(needed, player) {
+function renderNeeded(needed, player) {
   if (player.score >= player.targetScore) 
       return `<div style="color: #d6b0ff;">Balls Needed: Target Reached!</div>`;
   if (!needed.balls || needed.balls.length === 0) 
@@ -586,24 +607,55 @@ function renderNeeded(needed, player){
   
   const projected = needed.projectedScore;
 
-  // small canvases for needed balls
-  const pieces = needed.balls.map(b => {
+  // --- Needed Balls ---
+  const neededPieces = needed.balls.map(b => {
     const c = document.createElement('canvas');
     drawBallOnCanvas(c, b, 28);
     return `<img src="${c.toDataURL()}" style="width:28px;height:28px;margin-right:6px;border-radius:50%;">`;
   }).join('');
 
-  // calculate bad number
-  const badBall = calculateBadNumber(player);
-  const badNumberHTML = badBall 
-      ? `<div style="margin-top:6px; color:#ff6666;">Bad Number: sa ${badBall}</div>` 
-      : '';
+  // --- Bad Number sequences ---
+  const targetMinusOne = player.targetScore - 1;
+  const availSorted = [...availableBalls].sort((a,b)=>a-b);
+  const badSequences = [];
 
-  return `<div>${projected} ka sa ${needed.balls.length}</div>
-          <div style="margin-top:6px;">${pieces}</div>
-          ${badNumberHTML}`;
-}
-  
+  // Generate all sequential subsets
+  for (let start = 0; start < availSorted.length; start++) {
+    let acc = player.score;
+    let seq = [];
+    for (let i = start; i < availSorted.length; i++) {
+      seq.push(availSorted[i]);
+      acc += availSorted[i];
+      if (acc === targetMinusOne) {
+        badSequences.push([...seq]);
+        break;
+      } else if (acc > targetMinusOne) break; // overshoot, stop this sequence
+    }
+  }
+
+  // Limit to first 5 sequences
+  const displayedSequences = badSequences.slice(0, 5);
+  let badHtml = '';
+  if (displayedSequences.length > 0) {
+    displayedSequences.forEach(seq => {
+      const seqPieces = seq.map(b => {
+        const c = document.createElement('canvas');
+        drawBallOnCanvas(c, b, 28);
+        return `<img src="${c.toDataURL()}" style="width:28px;height:28px;margin-right:6px;border-radius:50%;">`;
+      }).join('');
+      badHtml += `<div style="margin-top:4px;">${seqPieces}</div>`;
+    });
+    badHtml = `<div style="margin-top:8px;color:#ff6666;font-weight:600;">Bad Number Sequences:</div>${badHtml}`;
+  }
+
+  // --- Compose combined section ---
+  let html = `<div>
+      <div><strong>${projected}</strong> ka sa <strong>${numberToTagalog(needed.balls.length)}</strong></div>
+      <div style="margin-top:6px;">${neededPieces}</div>
+      ${badHtml}
+  </div>`;
+
+  return html;
 }
 
 /* ---------- Initialization ---------- */
@@ -624,31 +676,45 @@ function renderNeeded(needed, player){
 })();
 
 const targetAInput = document.getElementById('targetA');
-  const targetBInput = document.getElementById('targetB');
-  const totalHandicap = 120;
+const targetBInput = document.getElementById('targetB');
+const totalHandicap = 120;
 
-  targetAInput.addEventListener('input', () => {
-    let a = parseInt(targetAInput.value, 10);
-    if (isNaN(a) || a < 1) a = 1;
-    if (a >= totalHandicap) a = totalHandicap - 1; // prevent 120+ input
-    targetAInput.value = a;
-    targetBInput.value = totalHandicap - a;
-  });
+// Allow temporary empty input; only adjust paired field if number is valid
+targetAInput.addEventListener('input', () => {
+  const val = targetAInput.value.trim();
+  if (val === '') {
+    targetBInput.value = '';
+    return;
+  }
+  let a = parseInt(val, 10);
+  if (isNaN(a)) return; // don't do anything if not a number yet
+  if (a < 1) a = 1;
+  if (a >= totalHandicap) a = totalHandicap - 1;
+  targetAInput.value = a;
+  targetBInput.value = totalHandicap - a;
+});
 
-  targetBInput.addEventListener('input', () => {
-    let b = parseInt(targetBInput.value, 10);
-    if (isNaN(b) || b < 1) b = 1;
-    if (b >= totalHandicap) b = totalHandicap - 1; // prevent 120+ input
-    targetBInput.value = totalHandicap - b;
-  });
+targetBInput.addEventListener('input', () => {
+  const val = targetBInput.value.trim();
+  if (val === '') {
+    targetAInput.value = '';
+    return;
+  }
+  let b = parseInt(val, 10);
+  if (isNaN(b)) return;
+  if (b < 1) b = 1;
+  if (b >= totalHandicap) b = totalHandicap - 1;
+  targetBInput.value = b;
+  targetAInput.value = totalHandicap - b;
+});
 
-  function renderBallSetAsImages(ballSet) {
-  if (!ballSet || ballSet.size === 0) return 'None';
-  const balls = Array.from(ballSet).sort((a,b)=>a-b);
-  const pieces = balls.map(b => {
+function renderBallSetAsImages(ballArr) {
+  if (!ballArr || ballArr.length === 0) return 'None';
+  const pieces = ballArr.map(b => {
     const c = document.createElement('canvas');
-    drawBallOnCanvas(c, b, 28); // 28px like needed balls
+    drawBallOnCanvas(c, b, 28);
     return `<img src="${c.toDataURL()}" style="width:28px;height:28px;margin-right:6px;border-radius:50%;">`;
   }).join('');
   return pieces;
 }
+
