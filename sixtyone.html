@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Rotation Calculator — Web (Canvas port of Flutter app)</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="wrap">
+    <h1>SixtyOne Calculator</h1>
+
+    <div id="setupPanel" class="panel">
+      <div class="row" style="justify-content:center;">
+        <div class="col">
+          <label>Player A Initials</label>
+          <input id="playerAInit" type="text" maxlength="3" value="A" />
+        </div>
+        <div class="col">
+          <label>Player B Initials</label>
+          <input id="playerBInit" type="text" maxlength="3" value="B" />
+        </div>
+        <div class="col">
+          <label>Game Type</label>
+          <select id="gameType">
+            <option value="even">Even (Both to 61)</option>
+            <option value="handicap">Handicap</option>
+          </select>
+        </div>
+        <div class="col" id="handicapInputs" style="display:none;">
+          <label>Handicap Targets (must sum to 120)</label>
+          <div class="row" style="padding-top:6px;">
+            <input id="targetA" type="number" min="1" value="61" />
+            <input id="targetB" type="number" min="1" value="59" />
+          </div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="muted">Target defaults to 61 for Even game</div>
+        <button id="startBtn">Start Game</button>
+      </div>
+
+      <div id="setupStatus" class="muted" style="text-align:center;"></div>
+    </div>
+
+    <div id="gamePanel" class="panel" style="margin-top:14px; display:none;">
+      <div class="players">
+        <div id="cardA" class="player-card" onclick="setActive(playerA.initials)">
+          <div class="player-top">
+            <div><strong id="pAName"></strong> <span class="small" id="activeA"></span></div>
+            <div class="badge" id="scoreA">0</div>
+          </div>
+          <div class="muted" id="pAPocketed">Pocketed: None</div>
+          <div class="needed" id="pANeeded"></div>
+        </div>
+
+        <div id="cardB" class="player-card" onclick="setActive(playerB.initials)">
+          <div class="player-top">
+            <div><strong id="pBName"></strong> <span class="small" id="activeB"></span></div>
+            <div class="badge" id="scoreB">0</div>
+          </div>
+          <div class="muted" id="pBPocketed">Pocketed: None</div>
+          <div class="needed" id="pBNeeded"></div>
+        </div>
+      </div>
+
+      <hr style="border:0; height:1px; background:rgba(255,255,255,.04); margin:12px 0;" />
+
+      <div style="text-align:center; margin-bottom:12px;" class="small">Available Balls (<span id="availableCount"></span>): Tap a ball to pocket it for active player</div>
+
+      <div id="grid" class="grid" aria-label="Billiard balls"></div>
+
+      <div class="wrap-controls">
+        <button id="undoBtn" onclick="undoLast()" disabled>Undo Last Pocket</button>
+        <button onclick="resetGame()">New Game</button>
+      </div>
+
+      <div class="status" id="statusMessage"></div>
+    </div>
+  </div>
+
+  <!-- Game Over Dialog placeholder -->
+  <div id="gameOverDialog" style="display:none;"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
