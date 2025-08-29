@@ -243,6 +243,11 @@ button:disabled {
   .small {
     display: none;
   }
+  
+  .status {
+    display: none;
+  }
+
 }
 
 
