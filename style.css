@@ -200,18 +200,24 @@ button:disabled {
   color: rgba(255, 255, 255, 0.75);
 }
 
-/* Responsive */
-@media (max-width: 720px) {
+/* Optimize specifically for iPhone 15 Pro (and similar ~430px wide screens) */
+@media (max-width: 480px) {
   :root {
-    --ball-size: 84px;
-  }
-
-  .players {
-    flex-direction: column;
+    --ball-size: 28px; /* smaller ball size */
   }
 
   .grid {
-    grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+    gap: 4px; /* tighter spacing */
+    grid-template-columns: repeat(auto-fit, minmax(28px, 1fr));
+  }
+
+  h1 {
+    display: none; /* remove the header */
+  }
+
+  .wrap {
+    margin: -28px auto; /* shift wrap */
+    padding: 8px; /* optional: less padding to save space */
   }
 }
 
