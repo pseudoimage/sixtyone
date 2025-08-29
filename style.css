@@ -200,24 +200,48 @@ button:disabled {
   color: rgba(255, 255, 255, 0.75);
 }
 
-/* Optimize specifically for iPhone 15 Pro (and similar ~430px wide screens) */
+/* iPhone 15 Pro (portrait ~430px width) */
 @media (max-width: 480px) {
   :root {
-    --ball-size: 28px; /* smaller ball size */
-  }
-
-  .grid {
-    gap: 4px; /* tighter spacing */
-    grid-template-columns: repeat(auto-fit, minmax(28px, 1fr));
-  }
-
-  h1 {
-    display: none; /* remove the header */
+    --ball-size: 30px; /* small but tappable */
   }
 
   .wrap {
-    margin: -28px auto; /* shift wrap */
-    padding: 8px; /* optional: less padding to save space */
+    margin: -20px auto;
+    padding: 8px;
+  }
+
+  h1 {
+    display: none;
+  }
+
+  .grid {
+    gap: 4px;
+    grid-template-columns: repeat(auto-fit, minmax(30px, 1fr));
+  }
+
+  .players {
+    flex-direction: column; /* stack vertically */
+    gap: 8px;
+  }
+
+  .muted {
+    font-size: 11px;
+  }
+
+  button {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+
+  .wrap-controls {
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  /* Optional: hide instructional text to save space */
+  .small {
+    display: none;
   }
 }
 
